@@ -69,7 +69,7 @@ Open [http://localhost:3000](http://localhost:3000)
 
 - Next.js 15, TypeScript, Tailwind CSS 4
 - OpenAI Realtime API (WebRTC speech-to-speech)
-- pdf-parse + mammoth (resume parsing)
+- unpdf + mammoth (resume parsing)
 - Zustand (state management)
 
 ## License

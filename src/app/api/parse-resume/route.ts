@@ -7,11 +7,11 @@ export const dynamic = "force-dynamic";
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
 async function extractPdfText(buffer: Buffer): Promise<string> {
-  const { PDFParse } = await import("pdf-parse");
-  const parser = new PDFParse({ data: buffer });
-  const result = await parser.getText();
-  await parser.destroy();
-  return result.text;
+  const { extractText } = await import("unpdf");
+  const { text } = await extractText(new Uint8Array(buffer), {
+    mergePages: true,
+  });
+  return Array.isArray(text) ? text.join("\n") : text;
 }
 
 async function extractDocxText(buffer: Buffer): Promise<string> {
