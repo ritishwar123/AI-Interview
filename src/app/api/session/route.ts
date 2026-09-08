@@ -6,6 +6,7 @@ import {
 import {
   getRealtimeConfig,
   resolveRealtimeVoice,
+  validateRealtimeDeployment,
 } from "@/lib/realtime-config";
 import type { InterviewConfig } from "@/lib/types";
 
@@ -37,6 +38,30 @@ function buildSessionBody(instructions: string, model: string, voice: string) {
   };
 }
 
+function parseRealtimeError(details: string): string {
+  try {
+    const parsed = JSON.parse(details) as {
+      error?: { message?: string; code?: string };
+    };
+    const message = parsed.error?.message;
+    const code = parsed.error?.code ?? "";
+
+    if (
+      code.includes("OperationNotSupported") ||
+      code.includes("OpperationNotSupported") ||
+      message?.includes("does not work with the specified model")
+    ) {
+      return "Wrong realtime model on server. Set AZURE_OPENAI_REALTIME_DEPLOYMENT to your Azure realtime deployment (e.g. gpt-realtime-2.1-mini), not a chat model like gpt-4o-mini.";
+    }
+
+    if (message) return message;
+  } catch {
+    // fall through
+  }
+
+  return details;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const realtime = getRealtimeConfig();
@@ -57,6 +82,14 @@ export async function POST(request: NextRequest) {
       realtime
     );
 
+    const deploymentError = validateRealtimeDeployment(
+      realtime.provider,
+      realtime.model
+    );
+    if (deploymentError) {
+      return NextResponse.json({ error: deploymentError }, { status: 500 });
+    }
+
     const response = await fetch(realtime.clientSecretsUrl, {
       method: "POST",
       headers: {
@@ -72,7 +105,10 @@ export async function POST(request: NextRequest) {
       const errorText = await response.text();
       console.error("Realtime client_secrets error:", errorText);
       return NextResponse.json(
-        { error: "Failed to create realtime session", details: errorText },
+        {
+          error: "Failed to create realtime session",
+          details: parseRealtimeError(errorText),
+        },
         { status: response.status }
       );
     }

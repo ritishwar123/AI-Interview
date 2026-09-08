@@ -209,8 +209,14 @@ export function useRealtimeInterview({
 
       if (!sessionRes.ok) {
         const err = await sessionRes.json();
-        const detail = err.details ? `: ${err.details}` : "";
-        throw new Error(`${err.error ?? "Failed to create session"}${detail}`);
+        const detail = err.details
+          ? typeof err.details === "string"
+            ? err.details
+            : JSON.stringify(err.details)
+          : "";
+        throw new Error(
+          detail || err.error || "Failed to create session"
+        );
       }
 
       const sessionData = await sessionRes.json();
